@@ -1,64 +1,79 @@
 
-const dataActivity = (count,responseData) =>{
-  responseData.forEach((dataActivity)=>{
-    
-    if(dataActivity.type == 'PushEvent'){
-      console.log('ACAAAAAA'+dataActivity.type+"\n")
-      console.log("")
-      console.log("")
-      const commits = dataActivity.payload.commits;
-      console.log('---- Activity N°',count, " ---- \n")
-      console.log("* "+ commits[0].message+"\n")
-      count +=1;
-    } 
-  });
-}
-
-
-
 const dataGit = async (nameGitOwner) =>{
     const data = await fetch(`https://api.github.com/users/${nameGitOwner}/events`)
     const response = await data.json();
     return response
 }
 
+const dataActivity = (count,responseData,filterSelected) =>{
+  console.log(responseData)
+  filterData = responseData.filter((data)=>data.type == filterSelected);
+  filterData.forEach((dataActivity)=>{
+    if(dataActivity.type == 'PushEvent'){
+      const commits = dataActivity.payload.commits;
+      console.log('---- Activity N°',count, " ---- \n")
+      console.log("* "+ commits[0].message+"\n")
+      count +=1;
+    }else if(data.type == 'IssueCommentEvent' || data.type == 'IssuesEvent'){
+      console.log('---- Activity N°',count, " ---- \n")
+      const messages = data.payload.issue.title;
+      console.log("* "+messages+"\n")
+      count +=1;
+    }else{
+      console.log('---- Activity N°',count, " ---- \n")
+      const messages = data.payload.pull_request.title;
+      console.log("* "+messages+"\n")
+      count +=1;
+    }
+      
+  });
+}
+
+
 const menu = async () =>{
     let count = 1;
     const username = process.argv[2];
     const responseData =await dataGit(username);
-    console.log(responseData)
     const filter = process.argv[3];
-
+    console.log(filter)
     switch(filter){
       case 'Push':
-        dataActivity(count,responseData);
+        dataActivity(count,responseData,'PushEvent');
         break;
-      
+      case 'PullRequest':
+        dataActivity(count,responseData, 'PullRequestEvent');
+        break;
+      case 'Issues':
+        dataActivity(count,responseData, 'IssuesEvent');
+        break;
+      case undefined:
+        responseData.forEach((data) => {     
+          if(filter !== 'undefined'){
+            if(data.type == 'PullRequestEvent'){
+              console.log('---- Activity N°',count, " ---- \n")
+              const messages = data.payload.pull_request.title;
+              console.log("* "+messages+"\n")
+              count +=1;
+            }else if(data.type == 'IssueCommentEvent' || data.type == 'IssuesEvent'){
+              console.log('---- Activity N°',count, " ---- \n")
+              const messages = data.payload.issue.title;
+              console.log("* "+messages+"\n")
+              count +=1;
 
-      default:
-        responseData.forEach((data) => {
-          const filter = data.payload.commits;
-          console.log("")
-          console.log("")
-          console.log(data.type)
-          console.log("")
-          console.log("")
-          console.log("")
-          console.log("")
-          console.log(data)
-          console.log("")
-          console.log("")
-          
-          if(filter !== undefined){
-            console.log(data.type)
-            console.log('---- Activity N°',count, " ---- \n")
-            const message = filter[0].message;
+            }else{
+              console.log('---- Activity N°',count, " ---- \n")
+              const messages = data.payload.commits[0].message;
+              console.log("* "+messages+"\n")
+              count +=1;
+            }
             
-            console.log("* "+message+"\n")
-            count +=1;
           }
         });
         break;
+
+      default:
+        console.log("Error: Invalid filter. Please use 'Push', 'PullRequest', 'Issues' or 'undefined'.");
+        
     }
     
 }
